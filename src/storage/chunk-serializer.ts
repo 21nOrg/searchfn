@@ -4,6 +4,10 @@ const JSON_ENCODER = new TextEncoder();
 const JSON_DECODER = new TextDecoder();
 
 function encodeVarint(value: number, output: number[]) {
+  // Check for values that cannot be safely represented as 32-bit unsigned integers
+  if (value > 0xffffffff || value < 0) {
+    throw new Error(`Varint encoding overflow: value ${value} exceeds 32-bit unsigned range`);
+  }
   let v = value >>> 0;
   while (v >= 0x80) {
     output.push((v & 0x7f) | 0x80);

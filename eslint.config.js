@@ -1,5 +1,6 @@
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import { fileURLToPath } from "url";
 
 const recommendedRules = tsPlugin.configs.recommended.rules;
 const typeCheckedRules = tsPlugin.configs["recommended-requiring-type-checking"].rules;
@@ -14,7 +15,7 @@ export default [
       parser: tsParser,
       parserOptions: {
         project: "./tsconfig.json",
-        tsconfigRootDir: new URL(".", import.meta.url).pathname,
+        tsconfigRootDir: fileURLToPath(new URL(".", import.meta.url)),
         sourceType: "module"
       }
     },

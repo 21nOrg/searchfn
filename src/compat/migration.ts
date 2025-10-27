@@ -30,7 +30,10 @@ const DEFAULT_TRANSFORMER = (value: unknown): string => {
     return value.toISOString();
   }
   if (typeof value === "object") {
-    return JSON.stringify(value);
+    return JSON.stringify(value, (_key: string, v: unknown) => {
+      if (typeof v === "bigint") return String(v);
+      return v;
+    });
   }
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
     return String(value);

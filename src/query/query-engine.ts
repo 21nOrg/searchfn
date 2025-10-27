@@ -92,12 +92,18 @@ function parsePosting(raw: unknown): { docId: string; termFrequency: number } {
     if (parsed && typeof parsed === "object" && "docId" in parsed) {
       const parsedRecord = parsed as Record<string, unknown>;
       const docIdValue = parsedRecord.docId;
-      const docId = typeof docIdValue === "string" || typeof docIdValue === "number" ? String(docIdValue) : raw;
-      const termFrequencyValue = Number(parsedRecord.termFrequency ?? 1);
-      const termFrequency = Number.isFinite(termFrequencyValue) && termFrequencyValue > 0 ? termFrequencyValue : 1;
-      return { docId, termFrequency };
+      if (typeof docIdValue === "string" || typeof docIdValue === "number") {
+        const docId = String(docIdValue);
+        const termFrequencyValue = Number(parsedRecord.termFrequency ?? 1);
+        const termFrequency = Number.isFinite(termFrequencyValue) && termFrequencyValue > 0 ? termFrequencyValue : 1;
+        return { docId, termFrequency };
+      }
+      // If docId is not a string or number, treat it as an invalid format
+      throw new Error(`Invalid docId type in parsed posting: ${typeof docIdValue}`);
+    } else {
+      // If it's a string but not valid JSON with docId, treat it as a simple docId
+      return { docId: raw, termFrequency: 1 };
     }
-    return { docId: raw, termFrequency: 1 };
   }
 
   if (typeof raw === "number") {
@@ -115,7 +121,7 @@ function parsePosting(raw: unknown): { docId: string; termFrequency: number } {
     }
   }
 
-  return { docId: String(raw), termFrequency: 1 };
+  throw new Error(`Could not parse posting from unexpected format: ${String(raw)}`);
 }
 
 function safeJsonParse(raw: string): unknown {

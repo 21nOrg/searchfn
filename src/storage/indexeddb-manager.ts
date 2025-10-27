@@ -165,9 +165,7 @@ export class IndexedDbManager {
       } catch (abortError) {
         this.logger.warn("Failed to abort transaction", { abortError });
       }
-      throw error instanceof Error
-        ? error
-        : new StorageError("Transaction callback rejected", { cause: error });
+      throw new StorageError("Transaction callback rejected", { cause: error });
     }
 
     await completionPromise;
@@ -232,6 +230,8 @@ export class IndexedDbManager {
   async deleteTermChunksForTerm(field: string, term: string): Promise<void> {
     await this.withTransaction([STORE_NAMES.terms], "readwrite", async (tx) => {
       const store = tx.objectStore(STORE_NAMES.terms);
+      // TODO: Future enhancement - iterate through all chunk indices for complete cleanup
+      // Currently only chunk 0 is used, but multi-chunk support should delete all chunks
       await this.requestToPromise(store.delete([field, term, 0]));
     });
   }

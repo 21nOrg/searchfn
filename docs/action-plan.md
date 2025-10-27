@@ -7,11 +7,11 @@
 
 ### Phase 1 – Foundational Infrastructure
 1. **Project Scaffolding**
-   - Set up TypeScript + Vite/Rollup build targeting ESM + CJS.
-   - Configure linting, formatting, and testing (Vitest/Jest).
+   - Set up TypeScript + tsup build targeting ESM + CJS.
+   - Configure linting, formatting, and testing (Vitest).
 2. **Core Utilities**
    - Implement logging utilities with feature flags.
-   - Add error handling primitives (`SearchError`).
+   - Add error handling primitives (`StorageError`).
 
 ### Phase 2 – Storage Layer
 1. **IndexedDB Manager**

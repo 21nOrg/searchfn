@@ -101,14 +101,9 @@ Documents → Pipeline → Indexer → Storage Manager (IndexedDB)
   - `mount(persistenceProvider)` to attach existing IndexedDB store (FlexSearch-compatible call).
   - `commit()` to flush pending writes.
 
-#### `DocumentSearch`
-- Provides multi-field search akin to FlexSearch’s `Document` API:
-  - Accepts document schema ({ idField, fieldsToIndex, fieldsToStore }).
-  - Offers `add`, `remove`, `search`, `suggest` methods.
-
-#### Compatibility Layer (`FlexCompat`)
-- Exposes `Index` and `Document` constructors with method signatures matching FlexSearch usage in `tidigit` (e.g., `addAsync`, `removeAsync`, `searchCacheAsync`, `mount`, `export`, `import`).
-- Internally delegates to `SearchEngine` / `DocumentSearch`.
+#### Compatibility Layer (FlexSearch Adapters)
+- Exposes `FlexSearchIndexAdapter` and `FlexSearchDocumentAdapter` classes with method signatures matching FlexSearch usage in `tidigit` (e.g., `addAsync`, `removeAsync`, `searchCacheAsync`, `mount`, `export`, `import`).
+- Internally delegates to `SearchEngine` for single-field and multi-field search operations.
 
 ### Options & Defaults
 - `cache.maxTerms`: default 2048 entries.
@@ -117,7 +112,7 @@ Documents → Pipeline → Indexer → Storage Manager (IndexedDB)
 - `pipeline`: default pipeline performing lowercasing + punctuation trim + stop word filter (extensible).
 
 ### Error Handling
-- Promise rejections with custom `SearchError` type containing `code` and message.
+- Promise rejections use the `StorageError` class and support an optional `cause` property.
 - Graceful fallback to in-memory only mode if IndexedDB unavailable, with warning logs.
 
 ## Algorithm Choices
