@@ -23,7 +23,7 @@ export function scorePostings(
   for (const chunk of chunks) {
     const idf = chunk.inverseDocumentFrequency ?? computeDefaultIdf(chunk.docFrequency);
     for (const posting of chunk.postings) {
-      const docId = posting.docId as DocId;
+      const docId = posting.docId;
       const docLength = documentLengths.get(docId) ?? averageDocLength;
       const tf = posting.termFrequency;
       const norm = 1 - b + (b * docLength) / Math.max(averageDocLength, 1);

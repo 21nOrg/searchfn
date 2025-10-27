@@ -64,20 +64,29 @@ export function encodePostings(values: (number | string)[]): ChunkEncodeResult {
   const output: number[] = [];
   let previous = 0;
 
-  for (let index = 0; index < sorted.length; index += 1) {
-    const current = sorted[index];
-    const delta = index === 0 ? current : current - previous;
-    if (delta < 0) {
-      throw new Error("Delta encoding received unsorted values");
+  try {
+    for (let index = 0; index < sorted.length; index += 1) {
+      const current = sorted[index];
+      const delta = index === 0 ? current : current - previous;
+      if (delta < 0) {
+        throw new Error("Delta encoding received unsorted values");
+      }
+      encodeVarint(delta, output);
+      previous = current;
     }
-    encodeVarint(delta, output);
-    previous = current;
-  }
 
-  return {
-    buffer: Uint8Array.from(output),
-    encoding: "delta-varint"
-  };
+    return {
+      buffer: Uint8Array.from(output),
+      encoding: "delta-varint"
+    };
+  } catch {
+    // Fallback to JSON encoding if delta-varint fails (e.g., overflow)
+    const json = JSON.stringify(values);
+    return {
+      buffer: JSON_ENCODER.encode(json),
+      encoding: "json"
+    };
+  }
 }
 
 export function decodePostings(buffer: ArrayBuffer, encoding: ChunkEncodeResult["encoding"]): ChunkDecodeResult {

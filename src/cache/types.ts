@@ -20,7 +20,7 @@ export interface CacheOptions {
 }
 
 export interface TermPosting {
-  docId: string;
+  docId: DocId;
   termFrequency: number;
 }
 
