@@ -19,6 +19,7 @@ export type FlexSearchAddInput = AddDocumentInput;
 
 export interface FlexSearchQueryOptions extends SearchOptions {
   suggest?: boolean;
+  field?: string | string[];
 }
 
 export interface FlexSearchDocumentHit {

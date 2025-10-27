@@ -8,7 +8,9 @@ export class PipelineEngine implements Pipeline {
   constructor(options?: PipelineOptions) {
     const baseStages = buildDefaultStages({
       stopWords: options?.stopWords ? new Set(options.stopWords) : undefined,
-      enableStemming: options?.enableStemming ?? false
+      enableStemming: options?.enableStemming ?? false,
+      language: options?.language,
+      stemmer: options?.stemmer
     });
     this.stages = [...baseStages, ...(options?.customStages ?? [])];
   }

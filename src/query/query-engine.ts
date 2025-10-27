@@ -61,7 +61,7 @@ export class QueryEngine {
 
     for (const chunk of postings) {
       for (const posting of chunk.postings) {
-        const docId = posting.docId as DocId;
+        const docId = posting.docId;
         if (docLengths.has(docId)) continue;
         const length = this.deps.stats.getLength(docId) ?? averageDocLength;
         docLengths.set(docId, length);

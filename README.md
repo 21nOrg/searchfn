@@ -54,8 +54,9 @@ const engine = new SearchEngine({
   name: "my-index",          // Index name (required)
   fields: ["title", "body"], // Searchable fields (required)
   pipeline: {                 // Optional tokenization config
-    lowercase: true,
-    stopWords: ["the", "a"]
+    language: "en",             // Language for stop words/stemming (en/es/fr, default: en)
+    enableStemming: true,       // Enable Porter stemming (default: false)
+    stopWords: new Set([...])   // Custom stop words (overrides language-based defaults)
   },
   cache: {                    // Optional cache sizes
     terms: 2048,              // LRU cache for term postings (default: 2048)
@@ -305,13 +306,40 @@ const nameOnly = await engine.search("mouse", {
 ### Custom Pipeline
 
 ```ts
-const engine = new SearchEngine({
+// English with stemming (default)
+const engineEN = new SearchEngine({
+  name: "english",
+  fields: ["text"],
+  pipeline: {
+    language: "en",           // or "english"
+    enableStemming: true
+  }
+});
+
+// Spanish stop words
+const engineES = new SearchEngine({
+  name: "spanish",
+  fields: ["text"],
+  pipeline: {
+    language: "es"            // or "spanish"
+  }
+});
+
+// French stop words
+const engineFR = new SearchEngine({
+  name: "french",
+  fields: ["text"],
+  pipeline: {
+    language: "fr"            // or "french"
+  }
+});
+
+// Custom stop words (overrides language defaults)
+const engineCustom = new SearchEngine({
   name: "custom",
   fields: ["text"],
   pipeline: {
-    lowercase: true,
-    stopWords: ["the", "a", "an", "and", "or", "but"],
-    split: /[\s\-_]+/  // Custom tokenization regex
+    stopWords: new Set(["the", "a", "an", "and", "or", "but"])
   }
 });
 ```

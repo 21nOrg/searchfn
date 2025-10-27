@@ -4,7 +4,7 @@ export interface WorkerSnapshotPayload {
   postings: Array<{
     field: string;
     term: string;
-    docIds: string[];
+    docIds: Array<string | number>;
     termFrequencies: number[];
   }>;
   stats: Array<{ docId: string; length: number }>;
@@ -15,7 +15,7 @@ export function toWorkerSnapshotPayload(snapshot: SearchEngineSnapshot): WorkerS
     postings: snapshot.postings.map((entry) => ({
       field: entry.field,
       term: entry.term,
-      docIds: entry.documents.map((doc) => doc.docId),
+      docIds: entry.documents.map((doc) => doc.docId) as Array<string | number>,
       termFrequencies: entry.documents.map((doc) => doc.termFrequency)
     })),
     stats: snapshot.stats.map((stat) => ({ ...stat }))

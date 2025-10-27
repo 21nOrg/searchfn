@@ -31,7 +31,7 @@ function decodeVarint(buffer: Uint8Array, offset: number): [number, number] {
     }
 
     shift += 7;
-    if (shift > 35) {
+    if (shift >= 35) {
       throw new Error("Varint decoding overflow");
     }
   }

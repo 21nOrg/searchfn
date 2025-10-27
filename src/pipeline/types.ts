@@ -17,10 +17,16 @@ export interface PipelineStage {
   execute(tokens: Token[], context: PipelineContext): Token[];
 }
 
+export interface Stemmer {
+  stem(token: string): string;
+}
+
 export interface PipelineOptions {
   enableStemming?: boolean;
   stopWords?: Iterable<string>;
   customStages?: PipelineStage[];
+  language?: string;
+  stemmer?: Stemmer;
 }
 
 export interface Pipeline {

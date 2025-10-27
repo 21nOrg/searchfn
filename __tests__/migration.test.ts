@@ -1,13 +1,6 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { indexedDB, IDBKeyRange } from "fake-indexeddb";
+import { describe, expect, it } from "vitest";
 import { createDocumentsFromFlexStore, migrateFlexStoreToSearchEngine } from "../src/compat/migration";
-import { SearchEngine } from "../src/search-engine";
-
-beforeAll(() => {
-  const globalObject = globalThis as unknown as { indexedDB: IDBFactory; IDBKeyRange?: typeof IDBKeyRange };
-  globalObject.indexedDB = indexedDB;
-  globalObject.IDBKeyRange = IDBKeyRange as unknown as typeof globalObject.IDBKeyRange;
-});
+import { createTestEngine } from "./helpers/test-utils";
 
 describe("compat/migration", () => {
   it("creates documents from a flexsearch store", () => {
@@ -58,10 +51,7 @@ describe("compat/migration", () => {
       }
     } satisfies Record<string, Record<string, unknown>>;
 
-    const engine = new SearchEngine({
-      name: `migration-${Math.random().toString(36).slice(2)}`,
-      fields: ["title", "body"]
-    });
+    const engine = createTestEngine({ fields: ["title", "body"] });
 
     const { documents } = await migrateFlexStoreToSearchEngine(engine, store, {
       indexFields: ["title", "body"],
@@ -74,7 +64,5 @@ describe("compat/migration", () => {
     const results = await engine.searchDetailed("migrate", { includeStored: true });
     expect(results).toHaveLength(2);
     expect(results[0].document).toBeDefined();
-
-    await engine.destroy();
   });
 });

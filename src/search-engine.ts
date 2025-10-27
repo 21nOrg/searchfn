@@ -172,6 +172,11 @@ export class SearchEngine {
     const docKey = this.docIdToKey(docId);
     let mutated = false;
 
+    // NOTE: This method only removes from in-memory postings. After a cold restart,
+    // if remove() is called before any searches load the chunks, the document may
+    // still appear in persisted chunks. For production use, consider implementing
+    // a document→terms reverse index or calling add() with all fields to ensure
+    // postings are loaded before calling remove().
     for (const [key, docMap] of this.postings.entries()) {
       if (docMap.delete(docKey)) {
         this.dirtyPostings.add(key);
@@ -189,6 +194,8 @@ export class SearchEngine {
 
     this.statsManager.removeDocument(docId);
     await this.storage.deleteDocument(docId);
+    // Clear cache to ensure removed document doesn't appear in subsequent cached queries
+    this.termCache.clear();
   }
 
   async getDocument(docId: DocId): Promise<Record<string, unknown> | undefined> {
@@ -222,7 +229,7 @@ export class SearchEngine {
       const key = this.getPostingKey(entry.field, entry.term);
       const docMap = new Map<string, number>();
       for (const posting of entry.documents) {
-        docMap.set(posting.docId, posting.termFrequency);
+        docMap.set(this.docIdToKey(posting.docId), posting.termFrequency);
       }
       this.postings.set(key, docMap);
       this.dirtyPostings.add(key);
@@ -240,6 +247,23 @@ export class SearchEngine {
   async importWorkerSnapshot(payload: WorkerSnapshotPayload): Promise<void> {
     const snapshot = fromWorkerSnapshotPayload(payload);
     await this.importSnapshot(snapshot);
+  }
+
+  async clear(): Promise<void> {
+    await this.ensureOpen();
+    
+    // Clear in-memory state
+    this.postings.clear();
+    this.dirtyPostings.clear();
+    this.termCache.clear();
+    this.vectorCache.clear();
+    this.statsManager.load([]);
+    
+    // Clear all IndexedDB stores
+    await this.storage.clearStore("terms");
+    await this.storage.clearStore("vectors");
+    await this.storage.clearStore("documents");
+    await this.storage.clearStore("cacheState");
   }
 
   async destroy(): Promise<void> {

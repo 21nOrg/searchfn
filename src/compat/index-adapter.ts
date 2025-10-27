@@ -37,11 +37,22 @@ export class FlexSearchIndexAdapter {
   }
 
   async searchAsync(query: string, options?: FlexSearchQueryOptions): Promise<(string | number)[]> {
-    return this.engine.search(query, options);
+    const searchOptions = this.translateOptions(options);
+    return this.engine.search(query, searchOptions);
   }
 
   async searchCacheAsync(query: string, options?: FlexSearchQueryOptions): Promise<(string | number)[]> {
     return this.searchAsync(query, options);
+  }
+
+  private translateOptions(options?: FlexSearchQueryOptions) {
+    if (!options) return undefined;
+    
+    const { field, ...rest } = options;
+    return {
+      ...rest,
+      fields: field ? (Array.isArray(field) ? field : [field]) : undefined
+    };
   }
 
   async removeAsync(id: string | number): Promise<void> {
@@ -49,7 +60,7 @@ export class FlexSearchIndexAdapter {
   }
 
   async clear(): Promise<void> {
-    await this.engine.destroy();
+    await this.engine.clear();
   }
 
   async exportSnapshot(): Promise<SearchEngineSnapshot> {

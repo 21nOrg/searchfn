@@ -5,7 +5,12 @@ export class StorageError extends Error {
     super(message);
     this.name = "StorageError";
     if (Object.prototype.hasOwnProperty.call(options ?? {}, "cause")) {
-      this.cause = options?.cause;
+      Object.defineProperty(this, "cause", {
+        value: options?.cause,
+        writable: true,
+        configurable: true,
+        enumerable: false
+      });
     }
   }
 }

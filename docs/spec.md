@@ -102,7 +102,7 @@ Documents → Pipeline → Indexer → Storage Manager (IndexedDB)
   - `commit()` to flush pending writes.
 
 #### Compatibility Layer (FlexSearch Adapters)
-- Exposes `FlexSearchIndexAdapter` and `FlexSearchDocumentAdapter` classes with method signatures matching FlexSearch usage in `tidigit` (e.g., `addAsync`, `removeAsync`, `searchCacheAsync`, `mount`, `export`, `import`).
+- Exposes `FlexSearchIndexAdapter` and `FlexSearchDocumentAdapter` classes with method signatures matching FlexSearch usage in `tidigit` (e.g., `addAsync`, `removeAsync`, `searchCacheAsync`, `export`, `import`).
 - Internally delegates to `SearchEngine` for single-field and multi-field search operations.
 
 ### Options & Defaults

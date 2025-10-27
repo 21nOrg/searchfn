@@ -1,5 +1,6 @@
-import type { PipelineStage, PipelineContext, Token } from "./types";
-import { DEFAULT_STOP_WORDS } from "./stop-words";
+import type { PipelineStage, PipelineContext, Token, Stemmer } from "./types";
+import { STOP_WORDS_EN, STOP_WORDS_ES, STOP_WORDS_FR } from "./stop-words";
+import { EnglishStemmer, NoOpStemmer } from "./stemmers";
 
 const TOKEN_REGEX = /[\p{L}\p{N}]+/gu;
 
@@ -47,37 +48,69 @@ export function createStopWordStage(stopWords: Set<string>): PipelineStage {
   };
 }
 
-export const stemStage: PipelineStage = {
-  name: "stem",
-  execute(tokens: Token[], context: PipelineContext): Token[] {
-    void context;
-    // Simple suffix trimming for plurals/gerunds; acts as a placeholder for more
-    // sophisticated stemmers while remaining deterministic for tests.
-    return tokens.map((token) => {
-      let stemmed = token.value;
-      if (stemmed.length > 4 && stemmed.endsWith("ing")) {
-        stemmed = stemmed.slice(0, -3);
-      } else if (stemmed.length > 3 && stemmed.endsWith("ed")) {
-        stemmed = stemmed.slice(0, -2);
-      } else if (stemmed.length > 2 && stemmed.endsWith("s")) {
-        stemmed = stemmed.slice(0, -1);
-      }
-      return {
+export function createStemStage(stemmer: import("./types").Stemmer): PipelineStage {
+  return {
+    name: "stem",
+    execute(tokens: Token[], context: PipelineContext): Token[] {
+      void context;
+      return tokens.map((token) => ({
         ...token,
-        value: stemmed
-      };
-    });
-  }
-};
+        value: stemmer.stem(token.value)
+      }));
+    }
+  };
+}
 
-export function buildDefaultStages(options?: { stopWords?: Set<string>; enableStemming?: boolean }): PipelineStage[] {
+interface BuildStagesOptions {
+  stopWords?: Set<string>;
+  enableStemming?: boolean;
+  stemmer?: Stemmer;
+  language?: string;
+}
+
+function getStopWordsForLanguage(language?: string): Set<string> {
+  switch (language?.toLowerCase()) {
+    case 'es':
+    case 'spanish':
+      return STOP_WORDS_ES;
+    case 'fr':
+    case 'french':
+      return STOP_WORDS_FR;
+    case 'en':
+    case 'english':
+    default:
+      return STOP_WORDS_EN;
+  }
+}
+
+function getStemmerForLanguage(language?: string): Stemmer {
+  switch (language?.toLowerCase()) {
+    case 'en':
+    case 'english':
+      return new EnglishStemmer();
+    case 'es':
+    case 'spanish':
+    case 'fr':
+    case 'french':
+      // For now, use NoOpStemmer for non-English languages
+      // TODO: Integrate proper Spanish/French stemmers
+      return new NoOpStemmer();
+    default:
+      return new EnglishStemmer();
+  }
+}
+
+export function buildDefaultStages(options?: BuildStagesOptions): PipelineStage[] {
   const stages: PipelineStage[] = [tokenizeStage, normalizeStage];
 
-  const stopWordSet = options?.stopWords ?? DEFAULT_STOP_WORDS;
+  // Stop words: explicit > language-based > default (English)
+  const stopWordSet = options?.stopWords ?? getStopWordsForLanguage(options?.language);
   stages.push(createStopWordStage(stopWordSet));
 
-  if (options?.enableStemming) {
-    stages.push(stemStage);
+  // Stemming: only if explicitly enabled or stemmer provided
+  if (options?.enableStemming || options?.stemmer) {
+    const stemmer = options?.stemmer ?? getStemmerForLanguage(options?.language);
+    stages.push(createStemStage(stemmer));
   }
 
   return stages;
