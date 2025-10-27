@@ -35,9 +35,15 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commitSha }} # Required for Tusk to access files for the commit being tested
 
-      - name: Setup
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - name: Install dependencies
         id: setup
-        run: '<command to install dependencies and set up your project>'
+        run: npm ci
 
       - name: Start runner
         id: test-action
@@ -68,7 +74,7 @@ jobs:
 
           # Test file regex to match all test files in the service
           # This is relative to the root of the repo (i.e., the appDir should be included in it, if applicable).
-          testFileRegex: '<regex to match the test files with the test framework>'
+          testFileRegex: '__tests__/.*\.test\.ts$'
 
           # The script to run to lint the code (adapt accordingly).
           # This should be a command that fixes lint errors, not just checking for them.
@@ -77,13 +83,13 @@ jobs:
           # Example (Python w/ black): "black {{file}}"
           # Example (TypeScript w/ prettier + eslint): "npx prettier --write {{file}} && npx eslint --fix {{file}}"
           # If you need to run a compilation check (e.g. tsc), contact support@usetusk.ai to ensure it is set up correctly.
-          lintScript: '<your lint command for {{file}}>'
+          lintScript: 'npx prettier --write {{file}} && npx eslint --fix {{file}}'
 
           # The script to run to test the code (adapt accordingly). Required for the test runner.
           # {{file}} placeholder is required and will be replaced by Tusk with the file being tested.
           # Example (pytest): "pytest {{file}}"
           # If your test output is known to contain a lot of console logs, we recommend suppressing these logs (e.g., use --silent / --quiet flags or equivalent).
-          testScript: '<your test command for {{file}}>'
+          testScript: 'npx vitest run {{file}}'
 
           # The runner may run tests in parallel.
           # Set this value to 1 if you know that your tests should not be run concurrently in each environment.
