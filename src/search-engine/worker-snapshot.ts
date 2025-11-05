@@ -1,4 +1,4 @@
-import type { SearchEngineSnapshot } from "./types";
+import type { SearchFnSnapshot } from "./types";
 
 export interface WorkerSnapshotPayload {
   postings: Array<{
@@ -10,7 +10,7 @@ export interface WorkerSnapshotPayload {
   stats: Array<{ docId: string; length: number }>;
 }
 
-export function toWorkerSnapshotPayload(snapshot: SearchEngineSnapshot): WorkerSnapshotPayload {
+export function toWorkerSnapshotPayload(snapshot: SearchFnSnapshot): WorkerSnapshotPayload {
   return {
     postings: snapshot.postings.map((entry) => ({
       field: entry.field,
@@ -22,7 +22,7 @@ export function toWorkerSnapshotPayload(snapshot: SearchEngineSnapshot): WorkerS
   };
 }
 
-export function fromWorkerSnapshotPayload(payload: WorkerSnapshotPayload): SearchEngineSnapshot {
+export function fromWorkerSnapshotPayload(payload: WorkerSnapshotPayload): SearchFnSnapshot {
   return {
     postings: payload.postings.map((entry) => ({
       field: entry.field,

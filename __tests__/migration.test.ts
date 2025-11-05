@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDocumentsFromFlexStore, migrateFlexStoreToSearchEngine } from "../src/compat/migration";
+import { createDocumentsFromFlexStore, migrateFlexStoreToSearchFn } from "../src/compat/migration";
 import { createTestEngine } from "./helpers/test-utils";
 
 describe("compat/migration", () => {
@@ -53,7 +53,7 @@ describe("compat/migration", () => {
 
     const engine = createTestEngine({ fields: ["title", "body"] });
 
-    const { documents } = await migrateFlexStoreToSearchEngine(engine, store, {
+    const { documents } = await migrateFlexStoreToSearchFn(engine, store, {
       indexFields: ["title", "body"],
       storeFields: ["tags"],
       concurrency: 2

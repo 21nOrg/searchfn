@@ -1,5 +1,5 @@
-import type { SearchEngineOptions, SearchEngineSnapshot } from "../search-engine";
-import { SearchEngine } from "../search-engine";
+import type { SearchFnOptions, SearchFnSnapshot } from "../search-engine";
+import { SearchFn } from "../search-engine";
 import type {
   FlexSearchAddInput,
   FlexSearchQueryOptions,
@@ -7,7 +7,7 @@ import type {
   FlexSearchWorkerSnapshot
 } from "./types";
 
-export interface DocumentIndexOptions extends SearchEngineOptions {
+export interface DocumentIndexOptions extends SearchFnOptions {
   document: {
     id: string;
     index: string[];
@@ -16,11 +16,11 @@ export interface DocumentIndexOptions extends SearchEngineOptions {
 }
 
 export class FlexSearchDocumentAdapter {
-  private readonly engine: SearchEngine;
+  private readonly engine: SearchFn;
   private readonly schema: DocumentIndexOptions["document"];
 
   constructor(options: DocumentIndexOptions) {
-    this.engine = new SearchEngine(options);
+    this.engine = new SearchFn(options);
     this.schema = options.document;
   }
 
@@ -65,11 +65,11 @@ export class FlexSearchDocumentAdapter {
     await this.engine.remove(id);
   }
 
-  async exportSnapshot(): Promise<SearchEngineSnapshot> {
+  async exportSnapshot(): Promise<SearchFnSnapshot> {
     return this.engine.exportSnapshot();
   }
 
-  async importSnapshot(snapshot: SearchEngineSnapshot): Promise<void> {
+  async importSnapshot(snapshot: SearchFnSnapshot): Promise<void> {
     await this.engine.importSnapshot(snapshot);
   }
 

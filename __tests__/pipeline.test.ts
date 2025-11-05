@@ -216,4 +216,103 @@ describe("PipelineEngine", () => {
       );
     });
   });
+
+  describe("edge n-grams", () => {
+    it("generates prefixes when enableEdgeNGrams is true", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true,
+        edgeNGramMinLength: 2,
+        edgeNGramMaxLength: 15
+      });
+      const tokens = pipeline.run("body", "anthropic", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // Should generate: an, ant, anth, anthr, anthro, anthrop, anthropi, anthropic
+      expect(values).toEqual([
+        "an", "ant", "anth", "anthr", "anthro", "anthrop", "anthropi", "anthropic"
+      ]);
+    });
+
+    it("includes metadata for prefix vs exact matches", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true,
+        edgeNGramMinLength: 2,
+        edgeNGramMaxLength: 5
+      });
+      const tokens = pipeline.run("body", "test", "doc-1");
+      
+      // te, tes, test
+      expect(tokens).toHaveLength(3);
+      
+      // First two are prefixes
+      expect(tokens[0].metadata).toEqual({ isPrefix: true, originalTerm: "test" });
+      expect(tokens[1].metadata).toEqual({ isPrefix: true, originalTerm: "test" });
+      
+      // Last one is the full term
+      expect(tokens[2].metadata).toEqual({ isPrefix: false, originalTerm: "test" });
+    });
+
+    it("skips terms shorter than minGram", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true,
+        edgeNGramMinLength: 3,
+        edgeNGramMaxLength: 10,
+        stopWords: [] // Disable stop words to keep short terms
+      });
+      const tokens = pipeline.run("body", "a on test", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // "a" and "on" are shorter than minGram (3), so kept as-is
+      // "test" generates: tes, test
+      expect(values).toEqual(["a", "on", "tes", "test"]);
+    });
+
+    it("caps at maxGram length", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true,
+        edgeNGramMinLength: 2,
+        edgeNGramMaxLength: 5
+      });
+      const tokens = pipeline.run("body", "anthropic", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // Should only generate up to 5 characters: an, ant, anth, anthr, anthr (last one is the full maxGram)
+      expect(values).toEqual(["an", "ant", "anth", "anthr"]);
+    });
+
+    it("defaults to minGram=2 and maxGram=15 when not specified", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true
+      });
+      const tokens = pipeline.run("body", "quick", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // Should generate from 2-5 chars: qu, qui, quic, quick
+      expect(values).toEqual(["qu", "qui", "quic", "quick"]);
+    });
+
+    it("works with stop words and stemming", () => {
+      const pipeline = new PipelineEngine({ 
+        enableEdgeNGrams: true,
+        enableStemming: true,
+        edgeNGramMinLength: 2,
+        edgeNGramMaxLength: 10
+      });
+      const tokens = pipeline.run("body", "the running", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // "the" is removed by stop words
+      // "running" -> "run" (stemmed), then n-grams: ru, run
+      expect(values).toEqual(["ru", "run"]);
+    });
+
+    it("disables edge n-grams by default", () => {
+      const pipeline = new PipelineEngine();
+      const tokens = pipeline.run("body", "test", "doc-1");
+      const values = tokens.map((token) => token.value);
+      
+      // Without enableEdgeNGrams, should only get the full term
+      expect(values).toEqual(["test"]);
+    });
+  });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createEngineWithDocuments, createTestEngine } from "./helpers/test-utils";
 
-describe("SearchEngine", () => {
+describe("SearchFn", () => {
   it("indexes and retrieves documents", async () => {
     const engine = await createEngineWithDocuments(
       [

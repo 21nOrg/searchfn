@@ -208,6 +208,39 @@ export class IndexedDbManager {
     });
   }
 
+  /**
+   * Batch write multiple term chunks in a single transaction.
+   * Much more efficient than individual putTermChunk calls for bulk operations.
+   * 
+   * @param chunks Array of term chunks to write
+   */
+  async putTermChunksBatch(chunks: StoredPostingChunk[]): Promise<void> {
+    if (chunks.length === 0) return;
+    
+    await this.withTransaction([STORE_NAMES.terms], "readwrite", async (tx) => {
+      const store = tx.objectStore(STORE_NAMES.terms);
+      
+      const putPromises = chunks.map(chunk => {
+        const encoding = chunk.encoding ?? "delta-varint";
+        const record: TermChunkDbRecord = {
+          field: chunk.key.field,
+          term: chunk.key.term,
+          chunk: chunk.key.chunk,
+          payload: chunk.payload,
+          docFrequency: chunk.docFrequency,
+          inverseDocumentFrequency: chunk.inverseDocumentFrequency,
+          accessCount: chunk.accessCount,
+          lastAccessedAt: chunk.lastAccessedAt,
+          encoding
+        };
+        return this.requestToPromise(store.put(record));
+      });
+      
+      // Execute all puts in parallel within the transaction
+      await Promise.all(putPromises);
+    });
+  }
+
   async getTermChunk(key: TermIdentifier): Promise<StoredPostingChunk | undefined> {
     return this.withTransaction([STORE_NAMES.terms], "readonly", async (tx) => {
       const store = tx.objectStore(STORE_NAMES.terms);
@@ -274,6 +307,30 @@ export class IndexedDbManager {
         updatedAt: record.updatedAt
       };
       await this.requestToPromise(store.put(dbRecord));
+    });
+  }
+
+  /**
+   * Batch write multiple documents in a single transaction.
+   * More efficient than calling putDocument() in a loop.
+   */
+  async putDocumentsBatch(records: StoredDocumentRecord[]): Promise<void> {
+    if (records.length === 0) return;
+
+    await this.withTransaction([STORE_NAMES.documents], "readwrite", async (tx) => {
+      const store = tx.objectStore(STORE_NAMES.documents);
+      
+      const putPromises = records.map(record => {
+        const dbRecord: DocumentDbRecord = {
+          docId: normaliseDocId(record.docId),
+          payload: record.payload,
+          updatedAt: record.updatedAt
+        };
+        return this.requestToPromise(store.put(dbRecord));
+      });
+      
+      // Execute all puts in parallel within the transaction
+      await Promise.all(putPromises);
     });
   }
 

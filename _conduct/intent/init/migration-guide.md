@@ -38,12 +38,12 @@ await index.importWorkerSnapshot(payloadFromWorker);
 
 ## 4. Migrating Existing IndexedDB Data
 
-Use the `migrateFlexStoreToSearchEngine` helper to re-ingest stored FlexSearch documents.
+Use the `migrateFlexStoreToSearchFn` helper to re-ingest stored FlexSearch documents.
 
 ```ts
-import { migrateFlexStoreToSearchEngine } from "searchfn";
+import { migrateFlexStoreToSearchFn } from "searchfn";
 
-await migrateFlexStoreToSearchEngine(engine, legacyStore, {
+await migrateFlexStoreToSearchFn(engine, legacyStore, {
   indexFields: ["title", "body"],
   storeFields: ["tags"]
 });

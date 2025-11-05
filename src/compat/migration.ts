@@ -1,5 +1,5 @@
 import type { AddDocumentInput } from "../search-engine";
-import type { SearchEngine } from "../search-engine";
+import type { SearchFn } from "../search-engine";
 
 export interface FlexSearchDocumentStore {
   [docId: string]: Record<string, unknown> | undefined;
@@ -104,8 +104,8 @@ export function createDocumentsFromFlexStore(
   return { documents, skipped };
 }
 
-export async function migrateFlexStoreToSearchEngine(
-  engine: SearchEngine,
+export async function migrateFlexStoreToSearchFn(
+  engine: SearchFn,
   store: FlexSearchDocumentStore,
   options: FlexSearchMigrationOptions & { concurrency?: number }
 ): Promise<FlexSearchMigrationResult> {

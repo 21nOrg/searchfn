@@ -53,3 +53,13 @@ Thumbs.db
 
 # Benchmark results
 benchmarks/results/
+
+# Conduct
+_conduct/logs/
+_conduct/*.db
+_conduct/*.db-*
+
+.factory
+.cursor
+
+_conduct/.meta/
