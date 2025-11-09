@@ -115,6 +115,10 @@ await engine.addBulk(documents, {
 });
 ```
 
+**When to use which approach:**
+- Use **manual flush** when you need custom batching logic, conditional persistence, or integration with existing async workflows
+- Use **addBulk()** for simple scenarios where you just want progress reporting and automatic batch management
+
 **Performance Comparison:**
 - Traditional: `await engine.add(doc)` → ~30-60 seconds for 10,000 docs
 - Batched: `await engine.flush()` → ~1-2 seconds for 10,000 docs
@@ -583,8 +587,14 @@ search.search('anthopric', { fuzzy: true }); // ['1'] (default distance=2)
 
 **Fuzzy Options:**
 - `fuzzy: true` - Use default edit distance of 2
-- `fuzzy: number` - Custom Levenshtein distance (1-3 recommended)
+- `fuzzy: number` - Custom Levenshtein distance (1-3 recommended, automatically capped at 3)
 - Exact matches always rank higher than fuzzy matches
+
+**⚠️ Performance Note:**
+Fuzzy search scans the entire vocabulary on every query. For large indices (>10,000 terms), this can introduce noticeable latency. Consider:
+- Limiting search scope with `fields` option
+- Using prefix matching instead for autocomplete scenarios
+- Combining with `minScore` threshold to reduce result set size
 
 ## Combining Prefix + Fuzzy
 

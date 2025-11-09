@@ -13,7 +13,8 @@ export class PipelineEngine implements Pipeline {
       stemmer: options?.stemmer,
       enableEdgeNGrams: options?.enableEdgeNGrams ?? false,
       edgeNGramMinLength: options?.edgeNGramMinLength,
-      edgeNGramMaxLength: options?.edgeNGramMaxLength
+      edgeNGramMaxLength: options?.edgeNGramMaxLength,
+      edgeNGramFieldConfig: options?.edgeNGramFieldConfig
     });
     this.stages = [...baseStages, ...(options?.customStages ?? [])];
   }

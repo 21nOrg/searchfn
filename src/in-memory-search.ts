@@ -90,6 +90,8 @@ export class InMemorySearchFn {
         const isPrefix = termMetadata && typeof termMetadata.isPrefix === 'boolean' ? termMetadata.isPrefix : false;
         if (!isPrefix) {
           this.vocabulary.add(term);
+          // Invalidate fuzzy cache when vocabulary changes
+          this.fuzzyCache.clear();
         }
       }
     }
@@ -149,6 +151,8 @@ export class InMemorySearchFn {
     this.postings.clear();
     this.documents.clear();
     this.statsManager.load([]);
+    this.vocabulary.clear();
+    this.fuzzyCache.clear();
   }
 
   exportSnapshot(): InMemorySearchFnSnapshot {
@@ -180,6 +184,7 @@ export class InMemorySearchFn {
   }
 
   importSnapshot(snapshot: InMemorySearchFnSnapshot): void {
+    this.fuzzyCache.clear(); // Clear stale fuzzy expansions
     this.postings.clear();
     this.documents.clear();
     this.vocabulary.clear();
@@ -232,7 +237,7 @@ export class InMemorySearchFn {
       const postingsArray: TermPosting[] = Array.from(docMap.entries()).map(
         ([docId, info]) => ({
           docId,
-          termFrequency: info.frequency,
+          termFrequency: info.frequency * (token.boost || 1.0), // Apply fuzzy boost
           metadata: info.metadata
         })
       );
@@ -271,7 +276,8 @@ export class InMemorySearchFn {
       scored = scored.filter(doc => doc.score >= minScore);
     }
 
-    const limit = options?.limit ?? 10;
+    // Validate and normalize limit parameter
+    const limit = Math.max(1, options?.limit ?? 10);
     return scored.slice(0, limit);
   }
 
@@ -313,12 +319,9 @@ export class InMemorySearchFn {
   }
 
   private pipelineWithoutNGrams(field: string, text: string): Token[] {
-    const pipelineOptions: PipelineOptions = {
-      enableEdgeNGrams: false
-    };
-    
-    const tempPipeline = new PipelineEngine(pipelineOptions);
-    return tempPipeline.run(field, text);
+    // Use configured pipeline and filter n-gram tokens
+    const allTokens = this.pipeline.run(field, text);
+    return allTokens.filter(token => !token.metadata?.isNGram);
   }
 
   private getFuzzyDistance(fuzzy?: number | boolean): number | undefined {

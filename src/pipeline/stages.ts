@@ -121,7 +121,7 @@ export function buildDefaultStages(options?: BuildStagesOptions): PipelineStage[
   // Edge N-Grams: enabled globally or per-field
   if (options?.enableEdgeNGrams || options?.edgeNGramFieldConfig) {
     const minLength = options.edgeNGramMinLength ?? 2;
-    const maxLength = options.edgeNGramMaxLength ?? 15;
+    const maxLength = Math.max(options.edgeNGramMaxLength ?? 15, minLength);
     stages.push(createEdgeNGramStage({ 
       minGram: minLength, 
       maxGram: maxLength,

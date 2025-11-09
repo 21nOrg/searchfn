@@ -242,7 +242,9 @@ async function main() {
     }
   };
   
-  console.log(`\nReport saved to: benchmark-results-${documentCount}.json`);
+  const filename = `benchmark-results-${documentCount}.json`;
+  await Bun.write(filename, JSON.stringify(report, null, 2));
+  console.log(`\nReport saved to: ${filename}`);
   console.log(JSON.stringify(report, null, 2));
 }
 

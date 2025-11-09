@@ -6,7 +6,8 @@
  */
 
 /**
- * Calculate Levenshtein distance between two strings
+ * Calculate Levenshtein distance between two strings using space-optimized Wagner-Fischer algorithm.
+ * Uses O(min(n,m)) space instead of O(n*m) by keeping only two rows in memory.
  * 
  * @param a First string
  * @param b Second string
@@ -20,43 +21,50 @@ export function levenshteinDistance(a: string, b: string): number {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
   
-  // Create distance matrix
-  const matrix: number[][] = [];
-  
-  // Initialize first row and column
-  for (let i = 0; i <= b.length; i++) {
-    matrix[i] = [i];
+  // Ensure b is the shorter string for space optimization
+  if (a.length < b.length) {
+    [a, b] = [b, a];
   }
   
-  for (let j = 0; j <= a.length; j++) {
-    matrix[0][j] = j;
+  // Only need two rows: previous and current
+  let prevRow: number[] = new Array(b.length + 1);
+  let currRow: number[] = new Array(b.length + 1);
+  
+  // Initialize first row
+  for (let j = 0; j <= b.length; j++) {
+    prevRow[j] = j;
   }
   
-  // Fill in the rest of the matrix
-  for (let i = 1; i <= b.length; i++) {
-    for (let j = 1; j <= a.length; j++) {
-      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+  // Fill in the rest row by row
+  for (let i = 1; i <= a.length; i++) {
+    currRow[0] = i;
+    
+    for (let j = 1; j <= b.length; j++) {
+      if (a.charAt(i - 1) === b.charAt(j - 1)) {
         // Characters match, no edit needed
-        matrix[i][j] = matrix[i - 1][j - 1];
+        currRow[j] = prevRow[j - 1];
       } else {
         // Take minimum of three operations
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+        currRow[j] = Math.min(
+          prevRow[j - 1] + 1,  // substitution
+          currRow[j - 1] + 1,   // insertion
+          prevRow[j] + 1        // deletion
         );
       }
     }
+    
+    // Swap rows for next iteration
+    [prevRow, currRow] = [currRow, prevRow];
   }
   
-  return matrix[b.length][a.length];
+  return prevRow[b.length];
 }
 
 /**
  * Expand a term to include similar terms within max edit distance
  * 
  * @param term Query term to expand
- * @param maxDistance Maximum Levenshtein distance to accept
+ * @param maxDistance Maximum Levenshtein distance to accept (capped at 3 for performance)
  * @param vocabulary Set of all indexed terms
  * @returns Array of similar terms (including original if present)
  */
@@ -65,19 +73,26 @@ export function fuzzyExpand(
   maxDistance: number,
   vocabulary: Set<string>
 ): string[] {
+  // Cap maxDistance to practical limit (edit distance > 3 is rarely useful and very slow)
+  const cappedDistance = Math.min(Math.max(1, maxDistance), 3);
+  
   const candidates: string[] = [];
   const termLower = term.toLowerCase();
   
   for (const vocabTerm of vocabulary) {
+    // Normalize vocabulary term to lowercase for consistent comparison
+    const vocabTermLower = vocabTerm.toLowerCase();
+    
     // Pre-filter by length difference (optimization)
-    const lengthDiff = Math.abs(vocabTerm.length - termLower.length);
-    if (lengthDiff > maxDistance) {
+    const lengthDiff = Math.abs(vocabTermLower.length - termLower.length);
+    if (lengthDiff > cappedDistance) {
       continue;
     }
     
-    // Calculate edit distance
-    const distance = levenshteinDistance(termLower, vocabTerm);
-    if (distance <= maxDistance) {
+    // Calculate edit distance (both strings now lowercase)
+    const distance = levenshteinDistance(termLower, vocabTermLower);
+    if (distance <= cappedDistance) {
+      // Return original term from vocabulary (preserves original casing)
       candidates.push(vocabTerm);
     }
   }

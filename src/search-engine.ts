@@ -98,6 +98,13 @@ export class SearchFn {
   private openPromise: Promise<void> | null = null;
   private statsLoaded = false;
   private vocabLoaded = false;
+  // Flush synchronization
+  private isFlushInProgress = false;
+  private pendingFlushPromise: Promise<void> | null = null;
+  // Memory management
+  private readonly MAX_PENDING_DOCUMENTS = 100000;
+  private lastPendingWarningTime = 0;
+  private readonly PENDING_WARNING_INTERVAL_MS = 5000;
 
   constructor(options: SearchFnOptions) {
     this.name = options.name;
@@ -167,6 +174,18 @@ export class SearchFn {
     const shouldPersist = options?.persist !== false;
     if (shouldPersist) {
       await this.persistPostings();
+      await this.persistStats();
+      await this.persistVocabulary();
+    } else {
+      // Check if auto-flush is needed to prevent unbounded memory growth
+      if (this.dirtyPostings.size > this.MAX_PENDING_DOCUMENTS || 
+          this.pendingDocuments.size > this.MAX_PENDING_DOCUMENTS) {
+        console.warn(
+          `[SearchFn] Auto-flushing: ${this.pendingDocuments.size} pending documents, ` +
+          `${this.dirtyPostings.size} dirty terms. Call flush() explicitly to avoid this.`
+        );
+        await this.flush();
+      }
     }
 
     if (input.store) {
@@ -179,7 +198,22 @@ export class SearchFn {
       } else {
         // Queue for batch persist
         this.pendingDocuments.set(this.docIdToKey(input.id), input.store);
+        
+        // Emit warning if documents have been pending for too long
+        this.checkPendingDocumentsWarning();
       }
+    }
+  }
+  
+  private checkPendingDocumentsWarning(): void {
+    const now = Date.now();
+    if (this.pendingDocuments.size > 100 && 
+        now - this.lastPendingWarningTime > this.PENDING_WARNING_INTERVAL_MS) {
+      console.warn(
+        `[SearchFn] ${this.pendingDocuments.size} documents pending flush. ` +
+        `Call flush() to persist changes to IndexedDB.`
+      );
+      this.lastPendingWarningTime = now;
     }
   }
 
@@ -190,10 +224,17 @@ export class SearchFn {
    * Operations run in parallel for better performance since they
    * target different IndexedDB object stores.
    * 
+   * Thread-safe: concurrent calls will wait for the in-progress flush.
+   * 
    * @returns Promise that resolves when all changes are persisted
    */
   async flush(): Promise<void> {
     await this.ensureOpen();
+    
+    // If flush is already in progress, wait for it to complete
+    if (this.isFlushInProgress && this.pendingFlushPromise) {
+      return this.pendingFlushPromise;
+    }
     
     if (this.dirtyPostings.size === 0 && 
         this.pendingDocuments.size === 0 && 
@@ -201,6 +242,19 @@ export class SearchFn {
       return; // Nothing to persist
     }
     
+    // Mark flush as in progress and create promise
+    this.isFlushInProgress = true;
+    this.pendingFlushPromise = this.doFlush();
+    
+    try {
+      await this.pendingFlushPromise;
+    } finally {
+      this.isFlushInProgress = false;
+      this.pendingFlushPromise = null;
+    }
+  }
+  
+  private async doFlush(): Promise<void> {
     // Execute all flush operations in parallel (different object stores)
     const flushOperations: Promise<void>[] = [];
     
@@ -244,6 +298,16 @@ export class SearchFn {
     options?: BulkAddOptions
   ): Promise<void> {
     await this.ensureOpen();
+    
+    // Validate batchSize parameter
+    let batchSize = options?.batchSize ?? 100;
+    if (batchSize < 1) {
+      throw new Error(`Invalid batchSize: ${batchSize}. Must be at least 1.`);
+    }
+    if (batchSize > 10000) {
+      console.warn(`[SearchFn] batchSize ${batchSize} is very large, capping to 10000 for performance.`);
+      batchSize = 10000;
+    }
     
     let indexed = 0;
     let lastReportTime = 0;
@@ -432,7 +496,7 @@ export class SearchFn {
    * Add document without updating cache (for bulk operations).
    * Cache must be updated separately via updateCaches().
    */
-  private async addWithoutCacheUpdate(input: AddDocumentInput): Promise<void> {
+  private addWithoutCacheUpdate(input: AddDocumentInput): void {
     const ingest = this.indexer.ingest({
       docId: input.id,
       fields: input.fields
@@ -704,8 +768,11 @@ export class SearchFn {
       return null;
     }
 
+    // Validate and normalize limit parameter
+    const limit = options?.limit !== undefined ? Math.max(1, options.limit) : undefined;
+
     const result = await this.queryEngine.execute(tokens, {
-      limit: options?.limit
+      limit
     });
     
     // Apply score threshold if specified
@@ -945,12 +1012,9 @@ export class SearchFn {
   }
 
   private pipelineWithoutNGrams(field: string, text: string): Token[] {
-    const pipelineOptions: PipelineOptions = {
-      enableEdgeNGrams: false
-    };
-    
-    const tempPipeline = new PipelineEngine(pipelineOptions);
-    return tempPipeline.run(field, text);
+    // Use configured pipeline and filter n-gram tokens
+    const allTokens = this.pipeline.run(field, text);
+    return allTokens.filter(token => !token.metadata?.isNGram);
   }
 
   private buildCacheKey(field: string, term: string): string {

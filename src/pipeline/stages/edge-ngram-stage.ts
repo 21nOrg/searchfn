@@ -76,6 +76,7 @@ function generateNGrams(tokens: Token[], minGram: number, maxGram: number): Toke
         // Store metadata for scoring and debugging
         // This will be serialized with the token
         metadata: {
+          ...token.metadata,
           isPrefix,
           originalTerm: term
         } as EdgeNGramMetadata
