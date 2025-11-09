@@ -1014,7 +1014,7 @@ export class SearchFn {
   private pipelineWithoutNGrams(field: string, text: string): Token[] {
     // Use configured pipeline and filter n-gram tokens
     const allTokens = this.pipeline.run(field, text);
-    return allTokens.filter(token => !token.metadata?.isNGram);
+    return allTokens.filter(token => !token.metadata?.isPrefix);
   }
 
   private buildCacheKey(field: string, term: string): string {

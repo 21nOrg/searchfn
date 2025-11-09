@@ -27,13 +27,10 @@ export function levenshteinDistance(a: string, b: string): number {
   }
   
   // Only need two rows: previous and current
-  let prevRow: number[] = new Array(b.length + 1);
-  let currRow: number[] = new Array(b.length + 1);
-  
-  // Initialize first row
-  for (let j = 0; j <= b.length; j++) {
-    prevRow[j] = j;
-  }
+  // Initialize prevRow with indices [0, 1, 2, ..., b.length]
+  let prevRow: number[] = Array.from({ length: b.length + 1 }, (_, i): number => i);
+  // Initialize currRow with zeros
+  let currRow: number[] = Array.from({ length: b.length + 1 }, (): number => 0);
   
   // Fill in the rest row by row
   for (let i = 1; i <= a.length; i++) {

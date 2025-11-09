@@ -321,7 +321,7 @@ export class InMemorySearchFn {
   private pipelineWithoutNGrams(field: string, text: string): Token[] {
     // Use configured pipeline and filter n-gram tokens
     const allTokens = this.pipeline.run(field, text);
-    return allTokens.filter(token => !token.metadata?.isNGram);
+    return allTokens.filter(token => !token.metadata?.isPrefix);
   }
 
   private getFuzzyDistance(fuzzy?: number | boolean): number | undefined {
