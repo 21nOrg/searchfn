@@ -1,7 +1,7 @@
 import type {
   SearchOptions,
   AddDocumentInput,
-  SearchEngineSnapshot,
+  SearchFnSnapshot,
   WorkerSnapshotPayload
 } from "../search-engine";
 import type { DocId } from "../types";
@@ -33,5 +33,5 @@ export interface FlexSearchResult {
   documents?: FlexSearchDocumentHit[];
 }
 
-export type FlexSearchSnapshot = SearchEngineSnapshot;
+export type FlexSearchSnapshot = SearchFnSnapshot;
 export type FlexSearchWorkerSnapshot = WorkerSnapshotPayload;

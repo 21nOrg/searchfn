@@ -10,7 +10,11 @@ export class PipelineEngine implements Pipeline {
       stopWords: options?.stopWords ? new Set(options.stopWords) : undefined,
       enableStemming: options?.enableStemming ?? false,
       language: options?.language,
-      stemmer: options?.stemmer
+      stemmer: options?.stemmer,
+      enableEdgeNGrams: options?.enableEdgeNGrams ?? false,
+      edgeNGramMinLength: options?.edgeNGramMinLength,
+      edgeNGramMaxLength: options?.edgeNGramMaxLength,
+      edgeNGramFieldConfig: options?.edgeNGramFieldConfig
     });
     this.stages = [...baseStages, ...(options?.customStages ?? [])];
   }

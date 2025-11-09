@@ -1,6 +1,7 @@
 import type { PipelineStage, PipelineContext, Token, Stemmer } from "./types";
 import { STOP_WORDS_EN, STOP_WORDS_ES, STOP_WORDS_FR } from "./stop-words";
 import { EnglishStemmer, NoOpStemmer } from "./stemmers";
+import { createEdgeNGramStage } from "./stages/edge-ngram-stage";
 
 const TOKEN_REGEX = /[\p{L}\p{N}]+/gu;
 
@@ -66,6 +67,10 @@ interface BuildStagesOptions {
   enableStemming?: boolean;
   stemmer?: Stemmer;
   language?: string;
+  enableEdgeNGrams?: boolean;
+  edgeNGramMinLength?: number;
+  edgeNGramMaxLength?: number;
+  edgeNGramFieldConfig?: Record<string, import("./types").EdgeNGramFieldConfig>;
 }
 
 function getStopWordsForLanguage(language?: string): Set<string> {
@@ -111,6 +116,17 @@ export function buildDefaultStages(options?: BuildStagesOptions): PipelineStage[
   if (options?.enableStemming || options?.stemmer) {
     const stemmer = options?.stemmer ?? getStemmerForLanguage(options?.language);
     stages.push(createStemStage(stemmer));
+  }
+
+  // Edge N-Grams: enabled globally or per-field
+  if (options?.enableEdgeNGrams || options?.edgeNGramFieldConfig) {
+    const minLength = options.edgeNGramMinLength ?? 2;
+    const maxLength = Math.max(options.edgeNGramMaxLength ?? 15, minLength);
+    stages.push(createEdgeNGramStage({ 
+      minGram: minLength, 
+      maxGram: maxLength,
+      fieldConfig: options.edgeNGramFieldConfig
+    }));
   }
 
   return stages;

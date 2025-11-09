@@ -89,7 +89,7 @@ Documents → Pipeline → Indexer → Storage Manager (IndexedDB)
 
 ### Core Classes
 
-#### `SearchEngine`
+#### `SearchFn`
 - Constructor accepts configuration ({ name, fields, pipeline, cache, storage }) and initializes metadata.
 - Methods:
   - `add(id, text | record)` / `addAsync` (Promise) for ingestion.
@@ -103,7 +103,7 @@ Documents → Pipeline → Indexer → Storage Manager (IndexedDB)
 
 #### Compatibility Layer (FlexSearch Adapters)
 - Exposes `FlexSearchIndexAdapter` and `FlexSearchDocumentAdapter` classes with method signatures matching FlexSearch usage in `tidigit` (e.g., `addAsync`, `removeAsync`, `searchCacheAsync`, `export`, `import`).
-- Internally delegates to `SearchEngine` for single-field and multi-field search operations.
+- Internally delegates to `SearchFn` for single-field and multi-field search operations.
 
 ### Options & Defaults
 - `cache.maxTerms`: default 2048 entries.

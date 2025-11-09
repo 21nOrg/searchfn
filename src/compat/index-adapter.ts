@@ -1,7 +1,7 @@
 import {
-  SearchEngine,
-  type SearchEngineOptions,
-  type SearchEngineSnapshot
+  SearchFn,
+  type SearchFnOptions,
+  type SearchFnSnapshot
 } from "../search-engine";
 import type {
   FlexIndexOptions,
@@ -11,10 +11,10 @@ import type {
 } from "./types";
 
 export class FlexSearchIndexAdapter {
-  private readonly engine: SearchEngine;
+  private readonly engine: SearchFn;
 
-  constructor(options: FlexIndexOptions & SearchEngineOptions) {
-    this.engine = new SearchEngine({
+  constructor(options: FlexIndexOptions & SearchFnOptions) {
+    this.engine = new SearchFn({
       ...options,
       cache: {
         terms: options.cache?.term,
@@ -63,11 +63,11 @@ export class FlexSearchIndexAdapter {
     await this.engine.clear();
   }
 
-  async exportSnapshot(): Promise<SearchEngineSnapshot> {
+  async exportSnapshot(): Promise<SearchFnSnapshot> {
     return this.engine.exportSnapshot();
   }
 
-  async importSnapshot(snapshot: SearchEngineSnapshot): Promise<void> {
+  async importSnapshot(snapshot: SearchFnSnapshot): Promise<void> {
     await this.engine.importSnapshot(snapshot);
   }
 

@@ -1,16 +1,16 @@
 import { afterEach } from "vitest";
 import {
   type AddDocumentInput,
-  type SearchEngineOptions,
-  SearchEngine
+  type SearchFnOptions,
+  SearchFn
 } from "../../src/search-engine";
 
-type TestEngineOptions = Partial<SearchEngineOptions>;
+type TestEngineOptions = Partial<SearchFnOptions>;
 
-const engines = new Set<SearchEngine>();
+const engines = new Set<SearchFn>();
 
-export function createTestEngine(options: TestEngineOptions = {}): SearchEngine {
-  const engine = new SearchEngine({
+export function createTestEngine(options: TestEngineOptions = {}): SearchFn {
+  const engine = new SearchFn({
     name: options.name ?? `test-${Math.random().toString(36).slice(2)}`,
     fields: options.fields ?? ["body"],
     pipeline: options.pipeline,
@@ -25,7 +25,7 @@ export function createTestEngine(options: TestEngineOptions = {}): SearchEngine 
 export async function createEngineWithDocuments(
   documents: AddDocumentInput[],
   options: TestEngineOptions = {}
-): Promise<SearchEngine> {
+): Promise<SearchFn> {
   const engine = createTestEngine(options);
   for (const document of documents) {
     await engine.add(document);
@@ -33,11 +33,11 @@ export async function createEngineWithDocuments(
   return engine;
 }
 
-export function unregisterEngine(engine: SearchEngine): void {
+export function unregisterEngine(engine: SearchFn): void {
   engines.delete(engine);
 }
 
-export async function destroyTestEngine(engine: SearchEngine): Promise<void> {
+export async function destroyTestEngine(engine: SearchFn): Promise<void> {
   unregisterEngine(engine);
   await engine.destroy();
 }

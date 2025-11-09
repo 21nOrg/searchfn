@@ -61,7 +61,7 @@ Remove `dist/` directory.
 
 ### core components
 
-#### 1. **SearchEngine** (`src/search-engine.ts`)
+#### 1. **SearchFn** (`src/search-engine.ts`)
 The main entry point. Orchestrates indexing, querying, and persistence.
 - Constructor accepts `{ name, fields, pipeline?, storage?, cache? }`
 - Methods: `add()`, `search()`, `searchDetailed()`, `remove()`, `destroy()`
@@ -115,7 +115,7 @@ Drop-in replacement for FlexSearch's `Index` class.
 Multi-field search adapter (not shown in detail, but follows same pattern)
 
 #### **Migration utilities** (`src/compat/migration.ts`)
-`migrateFlexStoreToSearchEngine()` helper for migrating existing FlexSearch data from IndexedDB.
+`migrateFlexStoreToSearchFn()` helper for migrating existing FlexSearch data from IndexedDB.
 
 ### data flow
 

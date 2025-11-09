@@ -11,6 +11,7 @@ export interface IndexingInputRecord {
 export interface IngestedDocument {
   docId: DocId;
   fieldFrequencies: Map<string, Map<string, number>>;
+  fieldMetadata: Map<string, Map<string, Record<string, unknown>>>;
   fieldLengths: Map<string, number>;
   totalLength: number;
 }
@@ -33,8 +34,65 @@ export class Indexer {
       }
     }
 
+    return this.convertAccumulatorToDocument(accumulator);
+  }
+
+  /**
+   * Batch ingest documents with token caching for repeated field values.
+   * Significantly faster when documents share common field values (categories, tags, etc.)
+   * 
+   * @param records - Array of documents to ingest
+   * @returns Array of ingested documents with term frequencies and metadata
+   */
+  ingestBatch(records: IndexingInputRecord[]): IngestedDocument[] {
+    // Token cache: Map<field, Map<text, tokens>>
+    const tokenCache = new Map<string, Map<string, import("../pipeline").Token[]>>();
+    
+    // Phase 1: Collect unique field values and tokenize once
+    for (const record of records) {
+      for (const [field, text] of Object.entries(record.fields)) {
+        if (!text) continue;
+        
+        let fieldCache = tokenCache.get(field);
+        if (!fieldCache) {
+          fieldCache = new Map();
+          tokenCache.set(field, fieldCache);
+        }
+        
+        // Only tokenize if not already cached
+        if (!fieldCache.has(text)) {
+          fieldCache.set(text, this.pipeline.run(field, text, record.docId));
+        }
+      }
+    }
+    
+    // Phase 2: Build documents using cached tokens
+    const results: IngestedDocument[] = [];
+    
+    for (const record of records) {
+      const accumulator = new DocumentAccumulator(record.docId);
+      
+      for (const [field, text] of Object.entries(record.fields)) {
+        if (!text) continue;
+        const tokens = tokenCache.get(field)?.get(text) ?? [];
+        for (const token of tokens) {
+          accumulator.addToken(token);
+        }
+      }
+      
+      results.push(this.convertAccumulatorToDocument(accumulator));
+    }
+    
+    return results;
+  }
+
+  /**
+   * Convert accumulator to IngestedDocument (shared by ingest and ingestBatch)
+   */
+  private convertAccumulatorToDocument(accumulator: DocumentAccumulator): IngestedDocument {
     const stats = accumulator.toDocumentStatistics();
     const fieldFrequencies = new Map<string, Map<string, number>>();
+    const fieldMetadata = new Map<string, Map<string, Record<string, unknown>>>();
     const fieldLengths = new Map<string, number>();
     let totalLength = 0;
 
@@ -46,6 +104,7 @@ export class Indexer {
         frequencies.set(term, termFrequency);
       });
       fieldFrequencies.set(field, frequencies);
+      fieldMetadata.set(field, value.termMetadata);
       fieldLengths.set(field, value.length);
       totalLength += value.length;
     });
@@ -53,6 +112,7 @@ export class Indexer {
     return {
       docId: stats.docId,
       fieldFrequencies,
+      fieldMetadata,
       fieldLengths,
       totalLength
     };

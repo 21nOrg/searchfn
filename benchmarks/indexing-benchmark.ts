@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks";
 import { indexedDB, IDBKeyRange } from "fake-indexeddb";
-import { SearchEngine } from "../src/search-engine";
+import { SearchFn } from "../src/search-engine";
 import { createDocumentsFromFlexStore } from "../src/compat/migration";
 
 const globalObject = globalThis as unknown as {
@@ -31,7 +31,7 @@ function createSampleStore(size: number): Record<string, Record<string, unknown>
 }
 
 async function runBenchmark(size = 1000): Promise<BenchmarkReport> {
-  const engine = new SearchEngine({
+  const engine = new SearchFn({
     name: `benchmark-${Math.random().toString(16).slice(2)}`,
     fields: ["title", "body"]
   });

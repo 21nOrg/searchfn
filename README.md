@@ -6,6 +6,7 @@
 
 - 🗄️ **Persistent Storage** - IndexedDB-backed index with automatic persistence
 - ⚡ **In-Memory Cache** - LRU caching for hot postings and vectors
+- 🧠 **In-Memory Variant** - Lightweight `InMemorySearchFn` for ephemeral data
 - 🔄 **Full CRUD Support** - Add, update, remove, and retrieve documents
 - 🔍 **BM25 Scoring** - Relevance-based ranking with configurable pipeline
 - 🧵 **Worker-Ready** - Snapshot export/import for cross-thread usage
@@ -20,9 +21,9 @@ npm install searchfn
 ## Quick Start
 
 ```ts
-import { SearchEngine } from "searchfn";
+import { SearchFn } from "searchfn";
 
-const engine = new SearchEngine({
+const engine = new SearchFn({
   name: "demo",
   fields: ["title", "body"]
 });
@@ -45,12 +46,12 @@ await engine.destroy();
 
 ## Core API
 
-### SearchEngine
+### SearchFn
 
 #### Constructor
 
 ```ts
-const engine = new SearchEngine({
+const engine = new SearchFn({
   name: "my-index",          // Index name (required)
   fields: ["title", "body"], // Searchable fields (required)
   pipeline: {                 // Optional tokenization config
@@ -85,6 +86,46 @@ await engine.add({
   }
 });
 ```
+
+#### Bulk Indexing (Performance Optimization)
+
+For indexing large datasets, use batched persistence to achieve 15-30x speedup:
+
+**Option 1: Manual Flush** (fine-grained control):
+```ts
+// Accumulate changes in memory
+for (const doc of documents) {
+  await engine.add({
+    id: doc.id,
+    fields: doc.fields
+  }, { persist: false });  // Skip immediate persistence
+}
+
+// Single batch persist at the end
+await engine.flush();
+```
+
+**Option 2: Bulk Add** (convenience method):
+```ts
+await engine.addBulk(documents, {
+  batchSize: 1000,  // Progress callback interval (optional)
+  onProgress: (indexed, total) => {
+    console.log(`Indexed ${indexed}/${total} documents`);
+  }
+});
+```
+
+**When to use which approach:**
+- Use **manual flush** when you need custom batching logic, conditional persistence, or integration with existing async workflows
+- Use **addBulk()** for simple scenarios where you just want progress reporting and automatic batch management
+
+**Performance Comparison:**
+- Traditional: `await engine.add(doc)` → ~30-60 seconds for 10,000 docs
+- Batched: `await engine.flush()` → ~1-2 seconds for 10,000 docs
+
+**Examples:**
+- See [`examples/bulk-indexing-worker.ts`](./examples/bulk-indexing-worker.ts) for real-world usage patterns
+- Run [`benchmarks/batched-indexing-benchmark.ts`](./benchmarks/batched-indexing-benchmark.ts) to measure performance on your system
 
 #### Searching
 
@@ -159,6 +200,69 @@ await engine.importWorkerSnapshot(payload);
 await engine.destroy(); // Deletes IndexedDB database
 ```
 
+## InMemorySearchFn
+
+For scenarios where data is already loaded in memory (e.g., links panel, global graph, collection items), use `InMemorySearchFn` - a lightweight variant without IndexedDB persistence.
+
+### Quick Start
+
+```ts
+import { InMemorySearchFn } from "searchfn";
+
+const search = new InMemorySearchFn({
+  fields: ["title", "tags"]
+});
+
+// Add documents (synchronous)
+search.add({
+  id: "link-1",
+  fields: { title: "Home Page", tags: "navigation main" },
+  store: { url: "/", visits: 42 }
+});
+
+// Search (synchronous)
+const results = search.searchDetailed("home", { includeStored: true });
+// [{ docId: "link-1", score: 1.23, document: { url: "/", visits: 42 } }]
+```
+
+### API
+
+All methods are **synchronous** and match `SearchFn` API:
+
+```ts
+// Add document
+search.add({
+  id: "doc-1",
+  fields: { title: "...", body: "..." },
+  store: { custom: "data" }
+});
+
+// Search
+const ids = search.search("query", { limit: 10, fields: ["title"] });
+const detailed = search.searchDetailed("query", { includeStored: true });
+
+// Remove
+search.remove("doc-1");
+
+// Get stored data
+const doc = search.getDocument("doc-1");
+
+// Clear all
+search.clear();
+
+// Snapshot (for serialization/hydration)
+const snapshot = search.exportSnapshot();
+search.importSnapshot(snapshot);
+```
+
+### When to Use
+
+- ✅ In-memory data (UI state, cached lists, navigation items)
+- ✅ Temporary search (session-based, ephemeral collections)
+- ✅ Fast initialization (no async setup)
+- ❌ Large datasets requiring persistence
+- ❌ Data that needs to survive page reloads
+
 ## FlexSearch Compatibility
 
 ### Index Adapter
@@ -218,19 +322,41 @@ const results = await index.search("hello");
 await index.remove("article-1");
 ```
 
+## Migrating from v0.1.x to v0.2.0
+
+The main class has been renamed from `SearchEngine` to `SearchFn` for consistency. Backward-compatible exports are provided:
+
+**Old (still works, but deprecated):**
+```ts
+import { SearchEngine } from "searchfn";
+const engine = new SearchEngine({...});
+```
+
+**New (recommended):**
+```ts
+import { SearchFn } from "searchfn";
+const engine = new SearchFn({...});
+```
+
+**New Features in v0.2.0:**
+- `flush()` - Explicit persistence control
+- `addBulk()` - Batch indexing with progress callbacks
+- `{ persist: false }` option in `add()` - Defer persistence
+- 15-30x performance improvement for bulk indexing
+
 ## Migration Utilities
 
 Migrate existing FlexSearch data from IndexedDB:
 
 ```ts
-import { migrateFlexStoreToSearchEngine, SearchEngine } from "searchfn";
+import { migrateFlexStoreToSearchFn, SearchFn } from "searchfn";
 
-const engine = new SearchEngine({
+const engine = new SearchFn({
   name: "migrated",
   fields: ["title", "body"]
 });
 
-await migrateFlexStoreToSearchEngine(engine, legacyFlexStore, {
+await migrateFlexStoreToSearchFn(engine, legacyFlexStore, {
   indexFields: ["title", "body"],
   storeFields: ["tags", "url"]
 });
@@ -243,9 +369,9 @@ See [`docs/migration-guide.md`](./docs/migration-guide.md) for a full walkthroug
 ### Basic CRUD Operations
 
 ```ts
-import { SearchEngine } from "searchfn";
+import { SearchFn } from "searchfn";
 
-const engine = new SearchEngine({
+const engine = new SearchFn({
   name: "notes",
   fields: ["content"]
 });
@@ -279,7 +405,7 @@ await engine.remove("note-1");
 ### Multi-Field Search
 
 ```ts
-const engine = new SearchEngine({
+const engine = new SearchFn({
   name: "products",
   fields: ["name", "description", "category"]
 });
@@ -307,7 +433,7 @@ const nameOnly = await engine.search("mouse", {
 
 ```ts
 // English with stemming (default)
-const engineEN = new SearchEngine({
+const engineEN = new SearchFn({
   name: "english",
   fields: ["text"],
   pipeline: {
@@ -317,7 +443,7 @@ const engineEN = new SearchEngine({
 });
 
 // Spanish stop words
-const engineES = new SearchEngine({
+const engineES = new SearchFn({
   name: "spanish",
   fields: ["text"],
   pipeline: {
@@ -326,7 +452,7 @@ const engineES = new SearchEngine({
 });
 
 // French stop words
-const engineFR = new SearchEngine({
+const engineFR = new SearchFn({
   name: "french",
   fields: ["text"],
   pipeline: {
@@ -335,7 +461,7 @@ const engineFR = new SearchEngine({
 });
 
 // Custom stop words (overrides language defaults)
-const engineCustom = new SearchEngine({
+const engineCustom = new SearchFn({
   name: "custom",
   fields: ["text"],
   pipeline: {
@@ -408,3 +534,84 @@ npm run benchmark
 ## License
 
 MIT
+
+
+## Prefix Search & Autocomplete
+
+Enable edge n-grams for prefix matching and autocomplete functionality:
+
+```ts
+import { InMemorySearchFn } from 'searchfn';
+
+const autocomplete = new InMemorySearchFn({
+  fields: ['name', 'description'],
+  pipeline: {
+    enableEdgeNGrams: true,
+    edgeNGramMinLength: 2,
+    edgeNGramMaxLength: 15,
+    stopWords: [] // Keep all terms for better autocomplete
+  }
+});
+
+// Index data
+autocomplete.add({
+  id: '1',
+  fields: { name: 'Anthropic Claude' },
+  store: { url: '/anthropic' }
+});
+
+// Progressive search as user types
+autocomplete.search('an');    // Matches 'Anthropic'
+autocomplete.search('anth');  // Still matches
+autocomplete.search('anthropic'); // Exact match (higher score)
+```
+
+## Fuzzy Search
+
+Handle typos and spelling variations with fuzzy matching:
+
+```ts
+const search = new InMemorySearchFn({
+  fields: ['title']
+});
+
+search.add({ id: '1', fields: { title: 'anthropic' } });
+
+// Without fuzzy - no match
+search.search('anthopric'); // []
+
+// With fuzzy - matches within edit distance
+search.search('anthopric', { fuzzy: 2 }); // ['1']
+search.search('anthopric', { fuzzy: true }); // ['1'] (default distance=2)
+```
+
+**Fuzzy Options:**
+- `fuzzy: true` - Use default edit distance of 2
+- `fuzzy: number` - Custom Levenshtein distance (1-3 recommended, automatically capped at 3)
+- Exact matches always rank higher than fuzzy matches
+
+**⚠️ Performance Note:**
+Fuzzy search scans the entire vocabulary on every query. For large indices (>10,000 terms), this can introduce noticeable latency. Consider:
+- Limiting search scope with `fields` option
+- Using prefix matching instead for autocomplete scenarios
+- Combining with `minScore` threshold to reduce result set size
+
+## Combining Prefix + Fuzzy
+
+Use both for powerful autocomplete with typo tolerance:
+
+```ts
+const search = new InMemorySearchFn({
+  fields: ['text'],
+  pipeline: {
+    enableEdgeNGrams: true,
+    edgeNGramMinLength: 2,
+    edgeNGramMaxLength: 10
+  }
+});
+
+// Prefix matching + fuzzy matching
+search.search('antho', { fuzzy: 1 });
+```
+
+

@@ -8,6 +8,7 @@ interface ScoreAccumulator {
 const DEFAULT_K1 = 1.2;
 const DEFAULT_B = 0.75;
 const DEFAULT_D = 0.5;
+const PREFIX_MATCH_PENALTY = 0.7;
 
 export function scorePostings(
   chunks: RetrievedPostingChunk[],
@@ -27,7 +28,12 @@ export function scorePostings(
       const docLength = documentLengths.get(docId) ?? averageDocLength;
       const tf = posting.termFrequency;
       const norm = 1 - b + (b * docLength) / Math.max(averageDocLength, 1);
-      const scoreContribution = idf * (d + ((k1 + 1) * tf) / (k1 * norm + tf));
+      let scoreContribution = idf * (d + ((k1 + 1) * tf) / (k1 * norm + tf));
+
+      // Apply penalty for prefix matches (n-grams)
+      if (posting.metadata?.isPrefix === true) {
+        scoreContribution *= PREFIX_MATCH_PENALTY;
+      }
 
       const accumulator = scores.get(docId) ?? { score: 0 };
       accumulator.score += scoreContribution;

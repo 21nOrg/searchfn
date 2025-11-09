@@ -1,16 +1,16 @@
 {
   "name": "searchfn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "IndexedDB-backed full-text search engine with hybrid in-memory caching and FlexSearch-compatible adapters.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
+      "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
   },
@@ -27,7 +27,7 @@
     "test:watch": "vitest watch",
     "typecheck": "tsc --noEmit",
     "benchmark": "tsx benchmarks/indexing-benchmark.ts",
-    "prepublishOnly": "npm run lint && npm run test && npm run build"
+    "prepublish": "npm run lint && npm run build"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -42,7 +42,7 @@
   "author": "21nOrg",
   "repository": {
     "type": "git",
-    "url": "https://github.com/21nOrg/searchfn.git"
+    "url": "git+https://github.com/21nOrg/searchfn.git"
   },
   "bugs": {
     "url": "https://github.com/21nOrg/searchfn/issues"
@@ -57,8 +57,8 @@
     "fake-indexeddb": "^6.2.4",
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.19.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "tsx": "^4.19.1"
+    "vitest": "^3.2.4"
   }
 }

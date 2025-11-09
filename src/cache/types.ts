@@ -22,6 +22,7 @@ export interface CacheOptions {
 export interface TermPosting {
   docId: DocId;
   termFrequency: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TermCacheValue {
